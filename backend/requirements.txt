@@ -1,0 +1,11 @@
+flask
+flask-cors
+flask-testing
+flask_bcrypt
+flask_sqlalchemy
+flask_login
+flask-jwt-auth
+flask_script
+flask_migrate
+flask_mail
+ipdb
