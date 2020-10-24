@@ -1,0 +1,14 @@
+.toasted {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.page-login {
+  text-align: center;
+  .card-login {
+    min-width: 400px;
+    margin-top: 100px;
+    h2, button {
+      margin: auto;
+    }
+  }
+}
