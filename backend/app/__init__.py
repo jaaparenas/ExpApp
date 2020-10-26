@@ -21,7 +21,7 @@ def ExpApp(config=Config):
     db.init_app(app)
     mail.init_app(app)
     cors.init_app(app)
-    migrate = Migrate(ExpApp, db)
+    migrate = Migrate(app, db)
 
     from app.auth import auth
     app.register_blueprint(auth)
