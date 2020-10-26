@@ -58,6 +58,14 @@ def drop_db():
     """Drops the db tables."""
     db.drop_all()
 
+    
+@manager.command
+def create_su():
+    """Create the super User."""
+    user = User(username='admin', email='admin@local.com', password='admin', is_active=1, is_admin=1)
+    db.session.add(user)
+    db.session.commit()
+
 
 if __name__ == '__main__':
     manager.run()
