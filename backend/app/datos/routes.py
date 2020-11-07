@@ -6,6 +6,7 @@ from . import datos
 from flask import jsonify, request, redirect
 from app import Config
 from ..auth.decorators import jwt_valid_token_access
+import pandas as pd
 
 def allowed_file(filename):
   return '.' in filename and filename.rsplit('.', 1)[1].lower() in Config.ALLOWED_EXTENSIONS
@@ -38,3 +39,14 @@ def subir():
         filesUpload.append({"file": myfile.filename, "disk": "error"})
 
     return jsonify({"msg": "_UPLOAD_FILE", "file": filesUpload}), 200
+
+
+@datos.route('/procesarwifi', methods=['POST'])
+#@jwt_valid_token_access
+def procesarwifi():
+    data = request.get_json()
+    df = pd.read_excel('storage/uploads/data.xlsx', sheet_name = 'Datos_encuestas_enero') 
+    x = df.head(1).to_json()
+    return jsonify(x), 200  
+
+
