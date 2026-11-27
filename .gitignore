@@ -2,8 +2,10 @@
 .flaskenv
 *.pyc
 *.pyo
+__pycache__/
 env/
-env*
+venv/
+.venv/
 dist/
 build/
 *.egg
@@ -22,3 +24,12 @@ htmlcov/
 .coverage
 .coverage.*
 *,cover
+
+# Local data / uploads
+backend/instance/
+backend/storage/
+*.sqlite3
+
+# Local env files (keep the example)
+.env.*
+!.env.example

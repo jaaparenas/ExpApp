@@ -1,71 +1,99 @@
-# manage.py
 import os
+import secrets
 import unittest
-import coverage
 
-from flask_script import Manager
-from flask_migrate import MigrateCommand
-from app import ExpApp, db, migrate
+import click
+from flask.cli import with_appcontext
+
+from app import ExpApp, db
 from app.auth.models import User
 
-COV = coverage.coverage(
-    branch=True,
-    include='app/*',
-    omit=[
-        'tests/',
-        'static/*'
-    ]
-)
-COV.start()
-
-manager = Manager(ExpApp)
-manager.add_command('db', MigrateCommand)
+app = ExpApp()
 
 
-@manager.command
+@app.cli.command('test')
 def test():
-    """Runs the unit tests without test coverage."""
+    """Ejecuta las pruebas sin cobertura."""
     tests = unittest.TestLoader().discover('./tests', pattern='test*.py')
     result = unittest.TextTestRunner(verbosity=2).run(tests)
-    if result.wasSuccessful():
-        return 0
-    return 1
+    if not result.wasSuccessful():
+        raise SystemExit(1)
 
 
-@manager.command
-def coverage():
-    """Runs the unit tests with coverage."""
+@app.cli.command('coverage')
+def coverage_report():
+    """Ejecuta las pruebas con cobertura."""
+    import coverage
+
+    cov = coverage.coverage(branch=True, include='app/*', omit=['tests/', 'static/*'])
+    cov.start()
     tests = unittest.TestLoader().discover('./tests')
     result = unittest.TextTestRunner(verbosity=2).run(tests)
-    if result.wasSuccessful():
-        COV.stop()
-        COV.save()
-        print('Coverage Summary:')
-        COV.report()
-        COV.erase()
-        return 0
-    return 1
+    cov.stop()
+    cov.save()
+    cov.report()
+    cov.erase()
+    if not result.wasSuccessful():
+        raise SystemExit(1)
 
 
-@manager.command
+@app.cli.command('create-db')
+@with_appcontext
 def create_db():
-    """Creates the db tables."""
+    """Crea las tablas de la base de datos."""
     db.create_all()
 
 
-@manager.command
+@app.cli.command('drop-db')
+@with_appcontext
 def drop_db():
-    """Drops the db tables."""
+    """Elimina las tablas de la base de datos."""
     db.drop_all()
 
-    
-@manager.command
+
+@app.cli.command('purge-tokens')
+@with_appcontext
+def purge_tokens():
+    """Elimina de la lista negra los tokens ya expirados."""
+    from app.auth.models import BlacklistToken
+    deleted = BlacklistToken.purge_expired()
+    db.session.commit()
+    click.echo('Tokens expirados eliminados: {}'.format(deleted))
+
+
+@app.cli.command('create-su')
+@with_appcontext
 def create_su():
-    """Create the super User."""
-    user = User(username='admin', email='admin@local.com', password='admin', is_active=1, is_admin=1)
+    """Crea el superusuario desde ADMIN_USERNAME / ADMIN_EMAIL / ADMIN_PASSWORD."""
+    username = os.environ.get('ADMIN_USERNAME', 'admin')
+    email = os.environ.get('ADMIN_EMAIL', 'admin@local.com')
+    password = os.environ.get('ADMIN_PASSWORD')
+
+    existing = User.query.filter(
+        (User.username == username) | (User.email == email)
+    ).first()
+    if existing is not None:
+        raise click.ClickException('Ya existe un usuario con ese username o email.')
+
+    generated = False
+    if not password:
+        password = secrets.token_urlsafe(18)
+        generated = True
+
+    user = User(
+        username=username,
+        email=email,
+        password=password,
+        is_active=True,
+        is_admin=True
+    )
     db.session.add(user)
     db.session.commit()
 
+    click.echo('Superusuario creado: {}'.format(username))
+    if generated:
+        click.echo('Contraseña generada (guárdala ahora): {}'.format(password))
+
 
 if __name__ == '__main__':
-    manager.run()
+    app.run()
